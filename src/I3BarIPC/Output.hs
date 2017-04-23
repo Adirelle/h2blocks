@@ -1,7 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module I3BarIPC.Types
-    ( Header(..)
+module I3BarIPC.Output
+    ( Output
+    , start
+    , emit
+    , Header(..)
     , emptyHeader
     , Color(..)
     , MinWidth(..)
@@ -9,17 +12,20 @@ module I3BarIPC.Types
     , Align(..)
     , Block(..)
     , emptyBlock
+    , Statusline
     )
-where
+    where
 
 import           Data.Aeson
-import           Data.Aeson.Encoding   (text)
-import           Data.Aeson.Types      (Options (..), camelTo2, defaultOptions)
-import qualified Data.Text             as T
-import qualified Data.Text.Lazy        as TL
-import           Formatting            (format, now, (%), (%.))
-import           Formatting.Formatters (hex, left)
+import           Data.Aeson.Encoding       (text)
+import           Data.Aeson.Types          (Options (..), camelTo2, defaultOptions)
+import qualified Data.Text                 as T
+import qualified Data.Text.Lazy            as TL
+import           Formatting                (format, now, (%), (%.))
+import           Formatting.Formatters     (hex, left)
 import           GHC.Generics
+
+import           I3BarIPC.Internal.Options
 
 --------------------------------------------------------------------------------
 -- Color
@@ -89,7 +95,7 @@ emptyHeader = Header
     }
 
 instance ToJSON Header where
-    toEncoding = genericToEncoding encodingOptions
+    toEncoding = genericToEncoding jsonOptions
 
 --------------------------------------------------------------------------------
 -- Block
@@ -98,7 +104,7 @@ instance ToJSON Header where
 data Block = Block
     { fullText            :: Text
     , name                :: Maybe Text
-    , instanceName        :: Maybe Text
+    , instance_           :: Maybe Text
     , shortText           :: Maybe Text
     , color               :: Maybe Color
     , background          :: Maybe Color
@@ -114,7 +120,7 @@ data Block = Block
 emptyBlock = Block
     { fullText            = ""
     , name                = Nothing
-    , instanceName        = Nothing
+    , instance_           = Nothing
     , shortText           = Nothing
     , color               = Nothing
     , background          = Nothing
@@ -127,16 +133,31 @@ emptyBlock = Block
     }
 
 instance ToJSON Block where
-    toEncoding = genericToEncoding encodingOptions
+    toEncoding = genericToEncoding jsonOptions
 
 --------------------------------------------------------------------------------
--- encodingOptions
+-- Statusline
 --------------------------------------------------------------------------------
 
-encodingOptions = defaultOptions
-    { fieldLabelModifier = camelTo2 '_'
-    , constructorTagModifier = camelTo2 '_'
-    , allNullaryToStringTag = True
-    , omitNothingFields = True
-    , unwrapUnaryRecords = True
-    }
+type Statusline = Vector Block
+
+--------------------------------------------------------------------------------
+-- Output
+--------------------------------------------------------------------------------
+
+newtype Output = Output Handle
+
+start :: Handle -> Header -> IO Output
+start h hdr = do
+    let o = Output h
+    writeJSON o hdr
+    hPut h "[\n"
+    return o
+
+emit :: Output -> Statusline -> IO ()
+emit  = writeJSON
+
+writeJSON :: ToJSON d => Output -> d -> IO ()
+writeJSON (Output o) x = do
+    hPut o $ toStrict $ encode x
+    hPut o "\n"
