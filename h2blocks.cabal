@@ -1,0 +1,29 @@
+name:                h2blocks
+version:             0.1.0.0
+-- synopsis:
+-- description:
+homepage:            https://github.com/githubuser/h2blocks#readme
+license:             BSD3
+license-file:        LICENSE
+author:              Adirelle
+maintainer:          adirelle@gmail.com
+copyright:           2017 Adirelle
+category:            Web
+build-type:          Simple
+cabal-version:       >=1.10
+extra-source-files:  README.md
+
+executable h2blocks
+  hs-source-dirs:      src
+  main-is:             Main.hs
+  other-modules:       Prelude
+                     , I3BarIPC.Types
+  default-language:    Haskell2010
+  default-extensions:  OverloadedStrings  
+  build-depends:       base-noprelude >= 4.9.0  && < 5
+                     , classy-prelude >= 1.2.0  && < 2
+                     , unix           >= 2.7.2  && < 3
+                     , aeson          >= 1.0.2  && < 2
+                     , formatting     >= 6.2.4  && < 7
+                     , text           >= 1.2.2  && < 2
+                     , bytestring     >= 0.10.8 && < 1
