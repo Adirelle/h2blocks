@@ -15,8 +15,8 @@ import Foreign.Marshal
 
 data StatVFS = StatVFS
     { blockSize :: CULong
-    , total :: CULong
-    , free :: CULong
+    , total     :: CULong
+    , free      :: CULong
     , available :: CULong
     }
     deriving (Show, Eq)
