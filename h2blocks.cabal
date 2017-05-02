@@ -45,4 +45,4 @@ executable h2blocks
                      , conduit              >= 1.2    && < 2
                      , stm-conduit          >= 3.0.0  && < 4
                      , conduit-combinators  >= 1.1.1  && < 2
-
+                     , mustache             >= 2.1.3  && < 3
