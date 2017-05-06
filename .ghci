@@ -1,0 +1,2 @@
+:load src/Prelude.hs
+:m Prelude
