@@ -17,7 +17,6 @@ module Types.Output
     )
     where
 
-import           Conduit
 import           Data.Aeson
 import qualified Data.Aeson.Encoding   as E
 import           Data.Aeson.Types
@@ -182,7 +181,7 @@ instance ToKeyValue Block where
         <> "separator"             .=? s
         <> "separator_block_width" .=? sbw
         <> "markup"                .=? m
-        
+
 instance ToJSON Block where
     toJSON = object . toKeyValue
     toEncoding = E.pairs . toKeyValue

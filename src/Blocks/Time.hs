@@ -1,20 +1,46 @@
-module Blocks.Time (timeBlock) where
+{-# LANGUAGE MultiParamTypeClasses #-}
 
-import System.IO.Unsafe (unsafePerformIO)
+module Blocks.Time
+    ( TimeBlock
+    , TimeConfig
+    ) where
 
-import Conduit
+import Data.Aeson
 import Data.Time
 import Data.Time.Format
 
 import Tickers
+import Types.Agents
+import Types.Config     (Delay)
 import Types.Output
-import Types.Config (Delay)
 
-timeBlock :: (MonadBaseControl IO m, MonadIO m) => Delay -> Text -> Source m Block
-timeBlock delay fmt = tickerSource delay getCurrentTime' $= mapC formatTime' =$= mapC mkBlock
-    where 
-        getCurrentTime' = liftIO getCurrentTime
-        formatTime' = pack . formatTime defaultTimeLocale fmt' . utcToLocalTime tz
-        mkBlock t = emptyBlock { fullText = t }
-        fmt' = unpack fmt
-        tz = unsafePerformIO getCurrentTimeZone
+data TimeBlock = TimeBlock String TimeLocale
+
+data TimeConfig = TimeConfig Delay Text
+
+instance FromJSON TimeConfig where
+    parseJSON = withObject "block" $ \o ->
+        TimeConfig
+        <$> o .:? "interval" .!= 1
+        <*> o .:? "format"   .!= "%Y-%M-%D %h:%m"
+
+newtype TimeEvent = Tick LocalTime
+
+instance BlockAgent TimeConfig TimeEvent TimeBlock where
+
+    create (TimeConfig delay fmt) events = do
+        tz <- liftIO getCurrentTimeZone
+        let fmt' = unpack fmt
+        ticks <- ticker delay (getLocalTime tz)
+        fork $ runEffect $ fromInput ticks >-> toOutput events
+        return $ TimeBlock fmt' defaultTimeLocale
+        where
+            getLocalTime tz = do
+                utc <- liftIO getCurrentTime
+                let local = utcToLocalTime tz utc
+                return $ Tick local
+
+    step a @ (TimeBlock fmt locale) (Tick localTime) = do
+        let txt = formatTime locale fmt localTime
+            blk = emptyBlock { fullText = pack txt }
+        return (a, Just blk)
