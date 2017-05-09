@@ -1,17 +1,17 @@
-module Tickers
+module H2Blocks.Data.Ticker
     ( ticker
     )
     where
 
 import Pipes.Concurrent hiding (atomically)
 
-import Types.Config     (Delay, toMicroseconds)
+import H2Blocks.Data.Config     (Delay, toMicroseconds)
 
-ticker :: (MonadBaseControl IO m, MonadIO m) => Delay -> m a -> m (Input a)
-ticker delay gen = do
+ticker :: (MonadBaseControl IO m, MonadIO m) => Delay -> m (Input UTCTime)
+ticker delay = do
     (outp, inp) <- liftIO $ spawn buffer
     fork $ forever $ do
-        value <- gen
+        value <- liftIO getCurrentTime
         atomically $ void $ send outp value
         threadDelay msDelay
     return inp

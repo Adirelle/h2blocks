@@ -1,4 +1,4 @@
-module Types.Config
+module H2Blocks.Data.Config
     ( GlobalConfig(..)
     , Config(..)
 
@@ -18,7 +18,7 @@ import Data.Scientific
 type Delay = Scientific
 
 toMicroseconds :: Delay -> Int
-toMicroseconds = truncate . (*) 1e6
+toMicroseconds d = truncate (d * 1e6)
 
 --------------------------------------------------------------------------------
 -- Global configuration

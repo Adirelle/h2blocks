@@ -1,4 +1,4 @@
-module Types.Input
+module H2Blocks.Data.I3BarIPC.Input
     ( ClickEvent(..)
     )
     where

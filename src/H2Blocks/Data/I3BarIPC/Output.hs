@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 
-module Types.Output
+module H2Blocks.Data.I3BarIPC.Output
     ( Header (..)
     , emptyHeader
 

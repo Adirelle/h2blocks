@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-module System.SysInfo
+module H2Blocks.System.SysInfo
     ( SysInfo (..)
     , sysInfo
     ) where

@@ -1,7 +1,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE CPP #-}
 
-module System.StatVFS
+module H2Blocks.System.StatVFS
     ( StatVFS (..)
     , statVFS
     ) where
@@ -33,16 +33,16 @@ instance Storable StatVFS where
         return $ StatVFS s t f a
 
     poke ptr (StatVFS s t f a) = do
-        #{poke struct statvfs, f_bsize  } ptr s 
-        #{poke struct statvfs, f_blocks } ptr t 
-        #{poke struct statvfs, f_bfree  } ptr f 
-        #{poke struct statvfs, f_bavail } ptr a 
+        #{poke struct statvfs, f_bsize  } ptr s
+        #{poke struct statvfs, f_blocks } ptr t
+        #{poke struct statvfs, f_bfree  } ptr f
+        #{poke struct statvfs, f_bavail } ptr a
 
 foreign import ccall unsafe "sys/statvfs.h statvfs"
     c_statvfs :: CString -> Ptr StatVFS -> IO Int
 
 statVFS :: FilePath -> IO StatVFS
-statVFS fp = 
+statVFS fp =
     withCString fp $ \fp' ->
         alloca $ \ptr -> do
             throwErrnoPathIfMinus1_ "statvfs" fp $ c_statvfs fp' ptr

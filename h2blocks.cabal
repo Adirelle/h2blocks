@@ -17,15 +17,13 @@ executable h2blocks
   hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:       Prelude
-                     , Types.Input
-                     , Types.Output
-                     , Types.Config
-                     , Types
-                     , Tickers
-                     , Blocks
-                     , Blocks.Time
-                     , System.SysInfo
-                     , System.StatVFS
+                     , H2Blocks.Data.I3BarIPC.Input
+                     , H2Blocks.Data.I3BarIPC.IOutput
+                     , H2Blocks.Data.Config
+                     , H2Blocks.Data.Tocker
+                     , H2Blocks.Data.BuildProducer
+                     , H2Blocks.System.SysInfo
+                     , H2Blocks.System.StatVFS
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings
                      , FlexibleContexts
