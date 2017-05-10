@@ -1,13 +1,12 @@
-module H2Blocks.Data.BlockProducer
+module H2Blocks.Data.Builder
     ( ClickHandler
     , SignalHandler
     , BlockProducer
     , Builder
     , onClick
     , onSignal
-    , askConfig
     , askIndex
-    , buildProducers
+    , build
     )
     where
 
@@ -47,21 +46,16 @@ filterHandlers handlers =
     in
         (clickHandlers, signals, signalHandlers)
 
-data Context c = Context c Text
+newtype Context = Context Text
 
-type Builder c m a = ReaderT (Context c) (WriterT [Handler] m) a
+type Builder m a = ReaderT Context (WriterT [Handler] m) a
 
-askConfig :: Monad m => Builder c m c
-askConfig = do
-    (Context c _) <- ask
-    return c
-
-askIndex :: Monad m => Builder c m Text
+askIndex :: Monad m => Builder m Text
 askIndex = do
-    (Context _ i) <- ask
+    (Context i) <- ask
     return i
 
-onClick :: Monad m => ClickHandler -> Builder c m ()
+onClick :: Monad m => ClickHandler -> Builder m ()
 onClick ch = do
     idx <- askIndex
     tell [OnClick (filterOnIndex idx)]
@@ -69,21 +63,21 @@ onClick ch = do
         filterOnIndex idx ce @ ClickEvent { I.instance_ = Just idx' } | idx' == idx = ch ce
         filterOnIndex _ _                                             = return ()
 
-onSignal :: Monad m => Signal -> SignalHandler -> Builder c m ()
+onSignal :: Monad m => Signal -> SignalHandler -> Builder m ()
 onSignal sig sh = tell [OnSignal sig filterOnSignal]
     where
         filterOnSignal sig' | sig' == sig = sh sig
                             | otherwise   = return ()
 
-buildProducers :: Monad m => Builder c m BlockProducer -> Vector c -> m (Vector BlockProducer, [ClickHandler], Set Signal, [SignalHandler])
-buildProducers builder confs = do
+build :: Monad m => (c -> Builder m BlockProducer) -> Vector c -> m (Vector BlockProducer, [ClickHandler], Set Signal, [SignalHandler])
+build builder confs = do
     (producers, handlers) <- runWriterT (V.imapM runBuilder confs)
     let (clickHandlers, signals, signalHandlers) = filterHandlers handlers
     return (producers, clickHandlers, signals, signalHandlers)
     where
         runBuilder idx config = do
             let idx' = tshow idx
-            producer <- runReaderT builder (Context config idx')
+            producer <- runReaderT (builder config) (Context idx')
             return $ setInstance producer idx'
 
         setInstance producer idx = do
