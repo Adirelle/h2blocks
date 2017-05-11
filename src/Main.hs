@@ -1,31 +1,37 @@
 module Main where
 
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.Vector           as V
-import qualified Data.Yaml             as Y
-import qualified System.IO             as IO
+import qualified Data.Aeson                    as A
+import qualified Data.ByteString.Lazy.Char8    as BLC
+import qualified Data.Yaml                     as Y
 
 import           H2Blocks.Data.Blocks
-import           H2Blocks.Data.Builder (BlockProducer, build)
+import           H2Blocks.Data.Builder
 import           H2Blocks.Data.Config
+import           H2Blocks.Data.I3BarIPC.Output
 
 main :: IO ()
 main = do
     cfg <- readConfig "h2blocks.yaml"
 
     (prods, _, _, _) <- build buildBlock (blocks cfg)
-
-    let delay = toMicroseconds (interval (global cfg))
-    forever $ do
-        emitStatusline prods
-        threadDelay delay
+    let hdr = emptyHeader
+    outputWorker stdout hdr prods (interval (global cfg))
 
 readConfig :: FilePath -> IO (Config BlockConfig)
 readConfig fp = do
-    yaml <- IO.withFile fp IO.ReadMode BC.hGetContents
-    return $ either error id $ Y.decodeEither yaml
+    res <- Y.decodeFileEither fp
+    case res of
+        Left e  -> throw e
+        Right c -> return c
 
-emitStatusline :: Vector BlockProducer -> IO ()
-emitStatusline prods = do
-    blocks <- sequence prods
-    print blocks
+outputWorker :: Handle -> Header -> Vector BlockProducer -> Delay -> IO ()
+outputWorker h header prods delay = do
+    put (A.encode header)
+    put "["
+    forever $ do
+        blocks <- sequence prods
+        put (A.encode blocks)
+        threadDelay msDelay
+    where
+        msDelay = toMicroseconds delay
+        put = BLC.hPutStrLn h
