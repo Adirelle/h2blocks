@@ -20,8 +20,8 @@ executable h2blocks
                      , H2Blocks.Data.I3BarIPC.Input
                      , H2Blocks.Data.I3BarIPC.Output
                      , H2Blocks.Data.Config
-                     , H2Blocks.Data.Builder
                      , H2Blocks.Data.MemoryUnit
+                     , H2Blocks.Data.Pipes
                      , H2Blocks.Data.Blocks.Memory
                      , H2Blocks.Data.Blocks.Time
                      , H2Blocks.Data.Blocks
@@ -47,3 +47,5 @@ executable h2blocks
                      , pipes-concurrency    >= 2.0.7  && < 2.1
                      , mtl                  >= 2.2.1  && < 2.3
                      , parsec               >= 3.1.11 && < 3.2
+                     , clock                >= 0.7.2  && < 0.8
+                     , unordered-containers >= 0.2.8  && < 0.3

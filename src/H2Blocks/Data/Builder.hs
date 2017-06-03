@@ -1,85 +1,41 @@
-module H2Blocks.Data.Builder
-    ( ClickHandler
-    , SignalHandler
-    , BlockProducer
-    , Builder
-    , onClick
-    , onSignal
-    , askIndex
-    , build
-    )
-    where
+{-# LANGUAGE RankNTypes #-}
 
-import qualified Data.Set                      as S
-import           Prelude                       hiding (Builder, Handler)
-import           System.Posix.Signals          hiding (Handler)
---import Data.Aeson.Types
+module H2Blocks.Data.Builder where
+
 import           Control.Monad.Reader
-import           Control.Monad.Writer          hiding ((<>))
-import           Data.Monoid                   (Monoid (..))
-import qualified Data.Vector                   as V
+import           Control.Monad.Writer
+import qualified Data.Set             as Set
+import           Pipes
+import qualified System.Posix         as Posix
 
-import           H2Blocks.Data.I3BarIPC.Input  as I
-import           H2Blocks.Data.I3BarIPC.Output as O
+import           H2Blocks.Data.Pipes
 
-type ClickHandler = ClickEvent -> IO ()
-type SignalHandler = Signal -> IO ()
-type BlockProducer = IO Block
+data BuilderOutput = BuilderOutput !(Set Posix.Signal) !Bool
 
-data Handler
-    = OnClick { ch:: ClickHandler }
-    | OnSignal { sig :: Signal, sh :: SignalHandler }
+instance Monoid BuilderOutput where
+    mempty = BuilderOutput Set.empty False
+    (BuilderOutput sa ca) `mappend` (BuilderOutput sb cb) = BuilderOutput (sa `mappend` sb)  (ca || cb)
 
-isClickHandler (OnClick _) = True
-isClickHandler _           = False
+type BuilderT m = WriterT BuilderOutput m
 
-isSignalHandler (OnSignal _ _) = True
-isSignalHandler _              = False
+type Builder = BuilderT Identity (Processor Identity ())
+type BuilderIO = BuilderT IO (Processor IO ())
 
-filterHandlers :: [Handler] -> ([ClickHandler], Set Signal, [SignalHandler])
-filterHandlers handlers =
-    let
-        clickHandlers = map ch $ filter isClickHandler handlers
-        s = filter isSignalHandler handlers
-        signals = S.fromList $ map sig s
-        signalHandlers = map sh s
-    in
-        (clickHandlers, signals, signalHandlers)
+handleSignal :: Monad m => Posix.Signal -> BuilderT m ()
+handleSignal s = tell $ BuilderOutput (Set.singleton s) False
 
-newtype Context = Context Text
+handleClick :: Monad m => BuilderT m ()
+handleClick = tell $ BuilderOutput Set.empty True
 
-type Builder m a = ReaderT Context (WriterT [Handler] m) a
-
-askIndex :: Monad m => Builder m Text
-askIndex = do
-    (Context i) <- ask
-    return i
-
-onClick :: Monad m => ClickHandler -> Builder m ()
-onClick ch = do
-    idx <- askIndex
-    tell [OnClick (filterOnIndex idx)]
-    where
-        filterOnIndex idx ce @ ClickEvent { I.instance_ = Just idx' } | idx' == idx = ch ce
-        filterOnIndex _ _                                             = return ()
-
-onSignal :: Monad m => Signal -> SignalHandler -> Builder m ()
-onSignal sig sh = tell [OnSignal sig filterOnSignal]
-    where
-        filterOnSignal sig' | sig' == sig = sh sig
-                            | otherwise   = return ()
-
-build :: Monad m => (c -> Builder m BlockProducer) -> Vector c -> m (Vector BlockProducer, [ClickHandler], Set Signal, [SignalHandler])
-build builder confs = do
-    (producers, handlers) <- runWriterT (V.imapM runBuilder confs)
-    let (clickHandlers, signals, signalHandlers) = filterHandlers handlers
-    return (producers, clickHandlers, signals, signalHandlers)
-    where
-        runBuilder idx config = do
-            let idx' = tshow idx
-            producer <- runReaderT (builder config) (Context idx')
-            return $ setInstance producer idx'
-
-        setInstance producer idx = do
-            block <- producer
-            return block { O.instance_ = Just idx }
+build :: (Monad m, Monad m') => Text -> BuilderT m (Processor m' ()) -> m (Processor m' (), BuilderOutput)
+build i b = do
+    (p, bo) <- runWriterT b
+    let (BuilderOutput sigs clickable) = bo
+        p1 = if Set.null sigs
+            then p
+            else signalFilter (foldr Posix.addSignal Posix.emptySignalSet sigs) >-> p
+        p2 = if clickable
+            then clickInputFilter i >-> p >-> clickOutputFilter i
+            else p1
+        p3 = pauseFilter >-> p2
+    return (p3, bo)

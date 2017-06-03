@@ -8,7 +8,7 @@ import Data.Aeson.Types
 
 import H2Blocks.Data.Blocks.Memory
 import H2Blocks.Data.Blocks.Time
-import H2Blocks.Data.Builder       as B
+import H2Blocks.Data.Builder
 
 data BlockConfig
     = Time TimeConfig
@@ -26,6 +26,6 @@ instance FromJSON BlockConfig where
                     "memory" -> Memory <$> parseJSON value
                     _        -> fail $ "Invalid block type: " ++ unpack t
 
-buildBlock :: MonadIO m => BlockConfig -> B.Builder m BlockProducer
+buildBlock :: BlockConfig -> BuilderIO
 buildBlock (Time c)   = buildTimeBlock c
 buildBlock (Memory c) = buildMemoryBlock c

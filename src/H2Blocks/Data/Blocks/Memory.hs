@@ -10,9 +10,10 @@ import Text.Mustache.Types           as M
 import Text.Parsec.Error
 import Text.Printf
 
-import H2Blocks.Data.Builder         as B
+import H2Blocks.Data.Builder
 import H2Blocks.Data.I3BarIPC.Output
 import H2Blocks.Data.MemoryUnit
+import H2Blocks.Data.Pipes
 import H2Blocks.System.SysInfo
 
 data MemoryConfig = MkMemoryConfig Text MemoryUnit Int
@@ -51,16 +52,17 @@ instance ToMustache MemoryInfo where
             numberFmt :: String
             numberFmt = "%." ++ show prec ++ "g"
 
-buildMemoryBlock :: MonadIO m => MemoryConfig -> B.Builder m BlockProducer
+buildMemoryBlock :: MemoryConfig -> BuilderIO
 buildMemoryBlock cfg @ (MkMemoryConfig tpl _ _) =
-    return producer
+    return $ forEvents go
     where
         prepare = MemoryInfo cfg
         tpl' = either showErrors id (compileTemplate "" tpl)
         format = substitute tpl'
-        producer = do
-            si <- sysInfo
+        go Query = do
+            si <- liftIO sysInfo
             let mi = prepare si
                 res = format mi
-            return emptyBlock { fullText = res }
+            update emptyBlock { fullText = res }
+        go _ = nop
         showErrors err = error (concatMap messageString (errorMessages err))

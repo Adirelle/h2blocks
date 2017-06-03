@@ -13,7 +13,8 @@ main :: IO ()
 main = do
     cfg <- readConfig "h2blocks.yaml"
 
-    (prods, _, _, _) <- build buildBlock (blocks cfg)
+    (procs, BuilderOutput sigs c) <- buildBlocks $ blocks cfg
+
     let hdr = emptyHeader
     outputWorker stdout hdr prods (interval (global cfg))
 
@@ -24,14 +25,17 @@ readConfig fp = do
         Left e  -> throw e
         Right c -> return c
 
-outputWorker :: Handle -> Header -> Vector BlockProducer -> Delay -> IO ()
-outputWorker h header prods delay = do
-    put (A.encode header)
-    put "["
-    forever $ do
-        blocks <- sequence prods
-        put (A.encode blocks)
-        threadDelay msDelay
-    where
-        msDelay = toMicroseconds delay
-        put = BLC.hPutStrLn h
+buildBlocks :: Vector BlockConfig -> IO (Vector (Processor IO ()), BuilderOutput)
+buildBlocks c = undefined
+
+-- outputWorker :: Handle -> Header -> Vector BlockProducer -> Delay -> IO ()
+-- outputWorker h header prods delay = do
+--     put (A.encode header)
+--     put "["
+--     forever $ do
+--         blocks <- sequence prods
+--         put (A.encode blocks)
+--         threadDelay msDelay
+--     where
+--         msDelay = toMicroseconds delay
+--         put = BLC.hPutStrLn h
