@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module H2Blocks.Data.Blocks.Time
+module H2Blocks.Data.Block.Time
     ( TimeConfig
     , buildTimeBlock
     ) where
@@ -8,12 +8,8 @@ module H2Blocks.Data.Blocks.Time
 import Data.Aeson
 import Data.Time
 import Data.Time.Format
-import Pipes
 
-import H2Blocks.Data.Builder
-import H2Blocks.Data.Config
-import H2Blocks.Data.I3BarIPC.Output
-import H2Blocks.Data.Pipes
+import H2Blocks.Data.Block as B
 
 newtype TimeConfig = TimeConfig Text
 
@@ -22,15 +18,14 @@ instance FromJSON TimeConfig where
         TimeConfig
         <$> o .:? "format"   .!= "%F %T %z"
 
-buildTimeBlock :: TimeConfig -> BuilderIO
+buildTimeBlock :: MonadIO m => TimeConfig -> m BlockSpec
 buildTimeBlock (TimeConfig fmt) = do
     timeZone <- liftIO getCurrentTimeZone
     let chTz = utcToZonedTime timeZone
         sFormat = formatTime defaultTimeLocale (unpack fmt)
         format = pack . sFormat . chTz
-    return $ forEvents (go format)
+    return $ fromPipe (pipe format)
     where
-        go format Query = do
+        pipe format = B.for cat $ \_ -> do
             now <- liftIO getCurrentTime
-            update $ emptyBlock { fullText = format now }
-        go _ _ = nop
+            yield $ Set $ emptyBlock { fullText = format now }

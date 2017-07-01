@@ -17,15 +17,16 @@ executable h2blocks
   hs-source-dirs:      src
   main-is:             Main.hs
   other-modules:       Prelude
+                     , H2Blocks.Data.Block
+                     , H2Blocks.Data.Block.Builder
+                     , H2Blocks.Data.Block.Time
                      , H2Blocks.Data.I3BarIPC.Input
                      , H2Blocks.Data.I3BarIPC.Output
                      , H2Blocks.Data.Config
+                     , H2Blocks.Data.Duration
+                     , H2Blocks.Data.Event
                      , H2Blocks.Data.MemoryUnit
-                     , H2Blocks.Data.Pipes
-                     , H2Blocks.Data.Blocks.Memory
-                     , H2Blocks.Data.Blocks.Time
-                     , H2Blocks.Data.Blocks
-                     , H2Blocks.Data.MemoryUnit
+                     , H2Blocks.Data.TimedPipes
                      , H2Blocks.System.SysInfo
   default-language:    Haskell2010
   default-extensions:  OverloadedStrings
@@ -42,10 +43,11 @@ executable h2blocks
                      , time                 >= 1.6.0  && < 1.7
                      , containers           >= 0.5.7  && < 0.6
                      , vector               >= 0.11.0 && < 0.12
-                     , mustache             >= 2.1.3  && < 2.2
-                     , pipes                >= 4.3.2  && < 4.4
-                     , pipes-concurrency    >= 2.0.7  && < 2.1
                      , mtl                  >= 2.2.1  && < 2.3
                      , parsec               >= 3.1.11 && < 3.2
                      , clock                >= 0.7.2  && < 0.8
                      , unordered-containers >= 0.2.8  && < 0.3
+                     , parsec-numeric       >= 0.1.0  && < 0.2
+                     , pipes                >= 4.3.4  && < 4.4
+                     , pipes-concurrency    >= 2.0.7  && < 2.1
+                     , transformers         >= 0.5.2  && < 0.6

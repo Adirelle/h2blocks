@@ -1,4 +1,4 @@
-module H2Blocks.Data.Blocks.Memory
+module H2Blocks.Data.Block.Memory
     ( MemoryConfig
     , buildMemoryBlock
     )
@@ -6,14 +6,12 @@ module H2Blocks.Data.Blocks.Memory
 
 import Data.Aeson
 import Text.Mustache
-import Text.Mustache.Types           as M
+import Text.Mustache.Types      as M
 import Text.Parsec.Error
 import Text.Printf
 
-import H2Blocks.Data.Builder
-import H2Blocks.Data.I3BarIPC.Output
+import H2Blocks.Data.Block      as B
 import H2Blocks.Data.MemoryUnit
-import H2Blocks.Data.Pipes
 import H2Blocks.System.SysInfo
 
 data MemoryConfig = MkMemoryConfig Text MemoryUnit Int
@@ -52,17 +50,17 @@ instance ToMustache MemoryInfo where
             numberFmt :: String
             numberFmt = "%." ++ show prec ++ "g"
 
-buildMemoryBlock :: MemoryConfig -> BuilderIO
+buildMemoryBlock :: MonadIO m -> MemoryConfig -> m BlockSpec
 buildMemoryBlock cfg @ (MkMemoryConfig tpl _ _) =
-    return $ forEvents go
+    return $ fromPipe pipe
     where
         prepare = MemoryInfo cfg
         tpl' = either showErrors id (compileTemplate "" tpl)
         format = substitute tpl'
-        go Query = do
+        pipe = for cat $ \_ -> do
             si <- liftIO sysInfo
             let mi = prepare si
                 res = format mi
-            update emptyBlock { fullText = res }
+            yield $ Set $ emptyBlock { fullText = res }
         go _ = nop
         showErrors err = error (concatMap messageString (errorMessages err))

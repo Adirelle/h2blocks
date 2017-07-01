@@ -1,5 +1,4 @@
 global:
-    interval: 1
+    interval: "1.0s"
 blocks:
     - { type: time }
-    - { type: memory }

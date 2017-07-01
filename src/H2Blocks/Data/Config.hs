@@ -1,31 +1,20 @@
 module H2Blocks.Data.Config
     ( GlobalConfig(..)
     , Config(..)
-
-    , Delay(..)
-    , toMicroseconds
     )
     where
 
 import Data.Aeson
 import Data.Aeson.Types
-import Data.Scientific
 
---------------------------------------------------------------------------------
--- Configuration
---------------------------------------------------------------------------------
-
-type Delay = Scientific
-
-toMicroseconds :: Delay -> Int
-toMicroseconds d = truncate (d * 1e6)
+import H2Blocks.Data.Duration
 
 --------------------------------------------------------------------------------
 -- Global configuration
 --------------------------------------------------------------------------------
 
 data GlobalConfig = GlobalConfig
-    { interval   :: Delay
+    { interval   :: Duration
     , stopSignal :: Maybe Int
     , contSignal :: Maybe Int
     }
@@ -33,7 +22,7 @@ data GlobalConfig = GlobalConfig
 
 instance FromJSON GlobalConfig where
     parseJSON = withObject "Config.global" $ \o -> do
-        i  <- o .:? "interval"    .!= 1
+        i  <- o .:? "interval"    .!= seconds 1
         ss <- o .:? "stop_signal"
         cs <- o .:? "cont_signal"
         return $ GlobalConfig i ss cs

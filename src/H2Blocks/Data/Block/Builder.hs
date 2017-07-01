@@ -1,4 +1,4 @@
-module H2Blocks.Data.Blocks
+module H2Blocks.Data.Block.Builder
     ( BlockConfig
     , buildBlock
     ) where
@@ -6,13 +6,13 @@ module H2Blocks.Data.Blocks
 import Data.Aeson
 import Data.Aeson.Types
 
-import H2Blocks.Data.Blocks.Memory
-import H2Blocks.Data.Blocks.Time
-import H2Blocks.Data.Builder
+import H2Blocks.Data.Block
+--import H2Blocks.Data.Block.Memory
+import H2Blocks.Data.Block.Time
 
 data BlockConfig
     = Time TimeConfig
-    | Memory MemoryConfig
+--    | Memory MemoryConfig
 
 instance FromJSON BlockConfig where
     parseJSON value =
@@ -22,10 +22,10 @@ instance FromJSON BlockConfig where
             dispatchOnType obj = do
                 t <- (obj .: "type") :: Parser Text
                 case t of
-                    "time"   -> Time <$> parseJSON value
-                    "memory" -> Memory <$> parseJSON value
-                    _        -> fail $ "Invalid block type: " ++ unpack t
+                    "time" -> Time <$> parseJSON value
+--                    "memory" -> Memory <$> parseJSON value
+                    _      -> fail $ "Invalid block type: " ++ unpack t
 
-buildBlock :: BlockConfig -> BuilderIO
+buildBlock :: MonadIO m => BlockConfig -> m BlockSpec
 buildBlock (Time c)   = buildTimeBlock c
-buildBlock (Memory c) = buildMemoryBlock c
+--buildBlock (Memory c) = buildMemoryBlock c
